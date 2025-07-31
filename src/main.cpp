@@ -1,5 +1,5 @@
 #include "main.h"
-#include "lemlib/chassis/trackingWheel.hpp"
+#include "lemlib/api.hpp"  // IWYU pragma: keep
 #include "pros/misc.h"
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
