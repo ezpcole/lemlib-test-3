@@ -3,8 +3,9 @@
 #define PROS_USE_SIMPLE_NAMES
 #define PROS_USE_LITERALS
 
-#include "api.h" // IWYU pragma: keep
+#include "api.h"          // IWYU pragma: keep
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/apix.h"    // IWYU pragma: keep
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,4 +23,4 @@ void opcontrol(void);
 #ifdef __cplusplus
 #endif
 
-#endif  // _PROS_MAIN_H_
+#endif // _PROS_MAIN_H_

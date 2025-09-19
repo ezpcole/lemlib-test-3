@@ -1,15 +1,21 @@
 #include "main.h"
-#include "lemlib/chassis/trackingWheel.hpp"
-#include "pros/misc.h"
+#include "gui.h"
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
-pros::MotorGroup left_mg({1, -2, 3}, pros::MotorGearset::blue);
-pros::MotorGroup right_mg({-4, 5, -6}, pros::MotorGearset::blue);
+pros::MotorGroup left_mg({-1, 2, -3}, pros::MotorGearset::blue);
+pros::MotorGroup right_mg(
+    {
+        4,
+        -5,
+        6,
+    },
+    pros::MotorGearset::blue);
 pros::Motor low_hoard(7, pros::MotorGearset::green);
-pros::Motor top_hoard(8, pros::MotorGearset::green);
+pros::Motor hood(8, pros::MotorGearset::green);
 pros::Motor intake(9, pros::MotorGearset::green);
 pros::Motor top_output(10, pros::MotorGearset::green);
 pros::Imu imu(11);
+pros::adi::Pneumatics tongue('A', false);
 
 lemlib::Drivetrain old_drivetrain(&left_mg, &right_mg,
                                   10, // CHANGE THIS
@@ -52,14 +58,14 @@ lemlib::ControllerSettings
 
 // input curve for throttle input during driver control
 lemlib::ExpoDriveCurve
-    throttle_curve(3,    // joystick deadband out of 127
+    throttle_curve(5,    // joystick deadband out of 127
                    10,   // minimum output where drivetrain will move out of 127
                    1.019 // expo curve gain
     );
 
 // input curve for steer input during driver control
 lemlib::ExpoDriveCurve
-    steer_curve(3,    // joystick deadband out of 127
+    steer_curve(5,    // joystick deadband out of 127
                 10,   // minimum output where drivetrain will move out of 127
                 1.019 // expo curve gain
     );
@@ -75,52 +81,45 @@ enum intake_states { STOPPED, HOARD, LOW_GOAL, MIDDLE_GOAL, TOP_GOAL };
 intake_states intake_state = STOPPED;
 
 void initialize() {
-  pros::lcd::initialize(); // initialize brain screen
-  chassis.calibrate();     // calibrate sensors
-  // print position to brain screen
-  pros::Task screen_task([&]() {
-    while (true) {
-      // print robot location to the brain screen
-      pros::lcd::print(0, "X: %f", chassis.getPose().x);         // x
-      pros::lcd::print(1, "Y: %f", chassis.getPose().y);         // y
-      pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-      // delay to save resources
-      pros::delay(20);
-    }
-  });
+  chassis.calibrate(); // calibrate sensors
+  lemlib::Pose default_pose(0, 0, 0);
+  chassis.setPose(default_pose);
+
+  // gui::ui_init();
+
   pros::Task intake_state_manager([&]() {
     while (true) {
       switch (intake_state) {
-      case STOPPED: {
+      case STOPPED:
         low_hoard.brake();
-        top_hoard.brake();
+        hood.brake();
         intake.brake();
         top_output.brake();
-      }
-      case HOARD: {
+        break;
+      case HOARD:
+        intake.move(-127);
+        low_hoard.brake();
+        hood.move(-127);
+        top_output.move(-127);
+        break;
+      case LOW_GOAL:
         intake.move(127);
         low_hoard.move(-127);
-        top_hoard.move(127);
-        top_output.brake();
-      }
-      case LOW_GOAL: {
-        intake.move(-127);
-        low_hoard.move(127);
-        top_hoard.move(-127);
-        top_output.brake();
-      }
-      case MIDDLE_GOAL: {
-        intake.move(127);
-        low_hoard.move(127);
-        top_hoard.move(-127);
+        hood.move(-127);
         top_output.move(-127);
-      }
-      case TOP_GOAL: {
-        intake.move(127);
-        low_hoard.move(127);
-        top_hoard.move(-127);
+        break;
+      case MIDDLE_GOAL:
+        intake.move(-127);
+        low_hoard.move(-127);
+        hood.brake();
         top_output.move(127);
-      }
+        break;
+      case TOP_GOAL:
+        intake.move(-127);
+        low_hoard.move(-127);
+        hood.move(127);
+        top_output.move(-127);
+        break;
       }
       pros::delay(20);
     }
@@ -139,20 +138,22 @@ void opcontrol() {
     int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
     int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1))
       intake_state = MIDDLE_GOAL;
-    } else if (controller.get_digital_new_press(
-                   pros::E_CONTROLLER_DIGITAL_L2)) {
+    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
       intake_state = TOP_GOAL;
-    } else if (controller.get_digital_new_press(
-                   pros::E_CONTROLLER_DIGITAL_R1)) {
+    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1))
       intake_state = LOW_GOAL;
-    } else if (controller.get_digital_new_press(
-                   pros::E_CONTROLLER_DIGITAL_R2)) {
+    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2))
       intake_state = HOARD;
-    } else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
       intake_state = STOPPED;
-    }
+
+    if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y))
+      tongue.extend();
+    else
+      tongue.retract();
+
     // move the robot
     chassis.arcade(leftY, rightX);
 

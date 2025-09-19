@@ -636,7 +636,7 @@
     },
     "upload_options": {
       "description": "Version 0.2",
-      "slot": 4,
+      "slot": 1,
       "icon": "clawbot"
     },
     "use_early_access": false
