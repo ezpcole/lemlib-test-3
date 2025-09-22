@@ -85,7 +85,8 @@ void initialize() {
   lemlib::Pose default_pose(0, 0, 0);
   chassis.setPose(default_pose);
 
-  // gui::ui_init();
+  data_t gui_data = {&left_mg, &right_mg, &controller, &imu, nullptr, &chassis};
+  gui gui(&gui_data);
 
   pros::Task intake_state_manager([&]() {
     while (true) {

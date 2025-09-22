@@ -1,25 +1,25 @@
 #include "gui.h"
-#include "liblvgl/lvgl.h"
-#include <cstring>
-#include <string>
+#include "liblvgl/lvgl.h" // IWYU pragma: keep
 
-// void gui::ui_init() {
-//   lv_init();
+gui::gui(data_t *data) {
+  this->data = data;
 
-//   //   lv_display_t *display = lv_display_create(480, 272);
-//   lv_obj_t *label = lv_label_create(lv_screen_active());
+  lv_obj_t *debug = lv_label_create(lv_screen_active());
+  lv_obj_align(debug, LV_ALIGN_TOP_LEFT, 0, 0);
 
-//   lv_label_set_text(label, "Hello world ");
-//   pros::Clock::time_point t = pros::Clock::now();
-//   while (true) {
-//     double duration = (pros::Clock::now() - t).count();
-//     std::string str = std::to_string(duration);
-//     const char *cstr = str.c_str();
+  lv_label_set_text(debug, "GUI INIT");
+  this->widgets.debug = debug;
+}
 
-//     lv_label_set_text(label, cstr);
-//     lv_timer_handler();
-//     pros::delay(10);
-//   }
-// }
+int gui::ui_update() {
+  char buf[256];
+  std::vector<double> left_temp = data->left_mg->get_temperature_all();
+  std::vector<double> right_temp = data->right_mg->get_temperature_all();
+  sprintf(buf,
+          "Temp 1: %.2f Temp 2: %.2f Temp 3: %.2f\nTemp 4: %.2f Temp "
+          "5: %.2f Temp 6: %.2f",
+          left_temp.at(0), left_temp.at(1), left_temp.at(2), right_temp.at(0),
+          right_temp.at(1), right_temp.at(2));
 
-// this works btw but  i need to asynchronize it
+  return 0;
+}
