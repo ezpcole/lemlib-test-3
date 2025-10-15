@@ -1,5 +1,14 @@
 #include "main.h"
 #include "gui.h"
+#include "liblvgl/llemu.hpp"
+#include "pros/rtos.hpp"
+#define PROXIMITY_THRESHOLD 100
+#define BLUE_HUE 200
+#define RED_HUE 10
+#define HUE_THRESHOLD 20
+#define RED 20
+#define BLUE 0
+#define THRESHOLD(a, b, c) (a < b + c && a > b - c)
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 pros::MotorGroup left_mg({-1, 2, -3}, pros::MotorGearset::blue);
@@ -10,12 +19,14 @@ pros::MotorGroup right_mg(
         6,
     },
     pros::MotorGearset::blue);
-pros::Motor low_hoard(7, pros::MotorGearset::green);
-pros::Motor hood(8, pros::MotorGearset::green);
+pros::Motor low_hoard(-7, pros::MotorGearset::green);
+pros::Motor hood(-10, pros::MotorGearset::green);
 pros::Motor intake(9, pros::MotorGearset::green);
-pros::Motor top_output(10, pros::MotorGearset::green);
+pros::Motor top_output(8, pros::MotorGearset::green);
 pros::Imu imu(11);
+pros::Optical optical(12);
 pros::adi::Pneumatics tongue('A', false);
+pros::adi::DigitalIn limit('B');
 
 lemlib::Drivetrain old_drivetrain(&left_mg, &right_mg,
                                   10, // CHANGE THIS
@@ -79,6 +90,17 @@ lemlib::Chassis chassis(old_drivetrain,     // drivetrain settings
 enum intake_states { STOPPED, HOARD, LOW_GOAL, MIDDLE_GOAL, TOP_GOAL };
 
 intake_states intake_state = STOPPED;
+optical_data_t optical_data;
+bool color_sorting = true;
+bool team_color = BLUE;
+
+void ready_blocks() {
+  intake_state = TOP_GOAL;
+  while (!limit.get_value()) {
+    pros::delay(20);
+  }
+  intake_state = STOPPED;
+}
 
 void initialize() {
   chassis.calibrate(); // calibrate sensors
@@ -86,8 +108,8 @@ void initialize() {
   chassis.setPose(default_pose);
 
   data_t gui_data = {&left_mg, &right_mg, &controller, &imu, nullptr, &chassis};
-  gui gui(&gui_data);
-
+  // gui gui(&gui_data);
+  pros::lcd::initialize();
   pros::Task intake_state_manager([&]() {
     while (true) {
       switch (intake_state) {
@@ -125,15 +147,57 @@ void initialize() {
       pros::delay(20);
     }
   });
+  pros::Task color_sorting_manager([&]() {
+    while (true) {
+      optical_data_t old = optical_data;
+      optical_data.hue = optical.get_hue();
+      optical_data.brightness = optical.get_brightness();
+      optical_data.saturation = optical.get_saturation();
+      optical_data.proximity = optical.get_proximity();
+      pros::lcd::print(0, "[Orange] Hue: %.2f Proximity: %d", optical.get_hue(),
+                       optical.get_proximity());
+      if (color_sorting) {
+        if (optical_data.proximity > PROXIMITY_THRESHOLD &&
+            old.proximity <= PROXIMITY_THRESHOLD) {
+          if (THRESHOLD(optical_data.hue, BLUE_HUE, HUE_THRESHOLD)) {
+            intake_state = TOP_GOAL;
+            while (!limit.get_value()) {
+              pros::delay(20);
+            }
+            while (limit.get_value()) {
+              pros::delay(20);
+            }
+            intake_state = HOARD;
+
+          } else if (THRESHOLD(optical_data.hue, RED_HUE, HUE_THRESHOLD)) {
+            // intake_state = HOARD;
+          }
+        }
+      }
+      pros::delay(20);
+    }
+  });
+  // while (true) {
+  //   gui.ui_update();
+  //   pros::delay(20);
+  // }
+  // DESYNCRHONZIE THIS
 }
 
 void disabled() {}
 
 void competition_initialize() {}
 
-void autonomous() {}
+void autonomous() {
+  chassis.moveToPoint(0, 0, 5000);
+  chassis.moveToPoint(82.535, 0, 5000);
+  chassis.moveToPoint(82.535, 70.321, 5000);
+  chassis.moveToPoint(-0.925, 69.026, 5000);
+  chassis.moveToPoint(-0.185, 0.185, 5000);
+}
 
 void opcontrol() {
+
   while (true) {
     // get left y and right x positions
     int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
@@ -150,11 +214,16 @@ void opcontrol() {
     else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
       intake_state = STOPPED;
 
-    if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y))
-      tongue.extend();
-    else
-      tongue.retract();
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
+      tongue.toggle();
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X))
+      color_sorting = !color_sorting;
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
+      ready_blocks();
 
+    // printf("Left Y: %.2f Right X: %.2f\n", chassis.getPose().x,
+    //        chassis.getPose().y); this eats battery so disable when possible
+    //        :D
     // move the robot
     chassis.arcade(leftY, rightX);
 

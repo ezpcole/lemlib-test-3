@@ -635,7 +635,7 @@
       }
     },
     "upload_options": {
-      "description": "Version 0.31",
+      "description": "Version 0.4",
       "slot": 1,
       "icon": "clawbot"
     },

@@ -15,6 +15,13 @@ void initialize(void);
 void disabled(void);
 void competition_initialize(void);
 void opcontrol(void);
+void ready_blocks();
+typedef struct optical_data {
+  double hue;
+  double saturation;
+  double brightness;
+  int32_t proximity;
+} optical_data_t;
 
 #ifdef __cplusplus
 }
