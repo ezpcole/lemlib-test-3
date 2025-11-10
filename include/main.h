@@ -6,6 +6,7 @@
 #include "api.h"          // IWYU pragma: keep
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/apix.h"    // IWYU pragma: keep
+#include "skills.h"       // IWYU pragma: keep
 
 #ifdef __cplusplus
 extern "C" {
