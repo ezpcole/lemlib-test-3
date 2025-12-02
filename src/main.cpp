@@ -5,6 +5,7 @@
 #include "liblvgl/llemu.hpp"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
+#include "pros/motors.h"
 #include "pros/rtos.hpp"
 #include "skills.h"
 #include <chrono>
@@ -28,10 +29,10 @@ pros::MotorGroup right_mg(
         6,
     },
     pros::MotorGearset::blue);
-pros::Motor low_hoard(-7, pros::MotorGearset::green);
+pros::Motor flexy_boi(9, pros::MotorGearset::green);
 pros::Motor hood(-10, pros::MotorGearset::green);
 pros::Motor top_output(8, pros::MotorGearset::green);
-pros::Motor intake(9, pros::MotorGearset::green);
+pros::Motor intake(-7, pros::MotorGearset::green);
 pros::MotorGroup all_motors({-7, -10, 8, 9}, pros::MotorGearset::blue);
 
 pros::Imu imu(11);
@@ -40,10 +41,12 @@ pros::Distance distance(13);
 pros::adi::Pneumatics tongue('A', false);
 pros::adi::Pneumatics puncher('B', false);
 double speed = 1.0;
+int direction = -1;
 
 lemlib::Drivetrain old_drivetrain(&left_mg, &right_mg,
-                                  10, // CHANGE THIS
-                                  lemlib::Omniwheel::NEW_4, 480, 2);
+                                  12.5, // CHANGE THIS
+                                  lemlib::Omniwheel::NEW_325, 450, 6);
+
 lemlib::Drivetrain new_drivetrain(&left_mg, &right_mg, 12.194,
                                   lemlib::Omniwheel::NEW_325, 360, 2);
 lemlib::OdomSensors sensors(
@@ -105,66 +108,44 @@ optical_data_t optical_data;
 bool color_sorting = false;
 bool threads_on = false;
 
-void ready_blocks() {
-  intake_state = TOP_GOAL;
-  speed = 0.5;
-  while (distance.get() > 100) {
-    pros::delay(20);
-  }
-  intake_state = STOPPED;
-}
-void yield_block(int timeout) {
-  pros::Clock::time_point start = pros::Clock::now();
-
-  while (optical_data.proximity < PROXIMITY_THRESHOLD) {
-    pros::Clock::duration t = (pros::Clock::now() - start);
-    if (std::chrono::milliseconds(t).count() > timeout / 2 && timeout != -1) {
-      break;
-    }
-    pros::delay(20);
-  }
-  start = pros::Clock::now();
-  while (optical_data.proximity > PROXIMITY_THRESHOLD) {
-    pros::Clock::duration t = (pros::Clock::now() - start);
-    if (std::chrono::milliseconds(t).count() > timeout / 2 && timeout != -1) {
-      break;
-    }
-    pros::delay(20);
-  }
-}
-
 void intake_state_manager_fn(void *param) {
   while (true) {
     switch (intake_state) {
     case STOPPED:
-      low_hoard.brake();
+      flexy_boi.brake();
       hood.brake();
       intake.brake();
       top_output.brake();
       break;
     case HOARD:
       intake.move(-127 * speed);
-      low_hoard.brake();
-      hood.move(-127 * speed);
-      top_output.move(-127 * speed);
+      top_output.set_brake_mode(pros::motor_brake_mode_e::E_MOTOR_BRAKE_HOLD);
+      top_output.brake();
+      flexy_boi.brake();
       break;
     case LOW_GOAL:
-      intake.move(127 * speed);
-      low_hoard.move(-127 * speed * 0.5);
-      hood.move(-127 * speed);
+      intake.move(-127 * speed);
       top_output.move(-127 * speed);
+      flexy_boi.move(-127 * speed);
       break;
     case MIDDLE_GOAL:
-      intake.move(-127 * speed);
-      low_hoard.move(-127 * speed);
-      hood.brake();
-      top_output.move(127 * speed);
+      // intake.move(-127 * speed);
+      // low_hoard.move(-127 * speed);
+      // hood.brake();
+      // top_output.move(127 * speed);
       break;
     case TOP_GOAL:
+      intake.move(127 * speed);
+      top_output.move(127 * speed);
+      flexy_boi.move(127 * speed);
+      break;
+    case SHORT_INTAKE:
       intake.move(-127 * speed);
-      low_hoard.move(-127 * speed);
-      hood.move(127 * speed);
-      top_output.move(-127 * speed);
+      top_output.set_brake_mode(pros::motor_brake_mode_e::E_MOTOR_BRAKE_HOLD);
+      top_output.brake();
+      flexy_boi.brake();
+      pros::delay(367);
+      intake_state = STOPPED;
       break;
     }
     pros::delay(20);
@@ -259,9 +240,9 @@ void autonomous() {
   //        },
   //        intake_state, tongue);
 
-  old_long(chassis, intake_state, tongue, auton_wait);
+  // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
-  // left(chassis, intake_state, tongue, auton_wait);
+  left(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
@@ -281,7 +262,7 @@ void opcontrol() {
     int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1))
-      intake_state = MIDDLE_GOAL;
+      intake_state = SHORT_INTAKE;
     else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
       intake_state = TOP_GOAL;
     else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1))
@@ -304,8 +285,8 @@ void opcontrol() {
         // color_sorting_manager.suspend();
       }
     }
-    if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A))
-      ready_blocks();
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
+      direction *= -1;
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN))
       puncher.toggle();
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT))
@@ -321,7 +302,7 @@ void opcontrol() {
     // }
 
     // move the robot
-    chassis.curvature(leftY, rightX, false);
+    chassis.curvature(leftY * direction, rightX, false);
 
     // delay to save resources
     pros::delay(25);
