@@ -29,6 +29,7 @@ pros::MotorGroup right_mg(
         6,
     },
     pros::MotorGearset::blue);
+
 pros::Motor flexy_boi(9, pros::MotorGearset::green);
 pros::Motor hood(-10, pros::MotorGearset::green);
 pros::Motor top_output(8, pros::MotorGearset::green);
@@ -107,7 +108,26 @@ intake_states intake_state = STOPPED;
 optical_data_t optical_data;
 bool color_sorting = false;
 bool threads_on = false;
+int side = -1;
 
+void drivetrain_telemetry_fn(void *param) {
+  pros::MotorGroup dt(
+      {
+          -1,
+          2,
+          -3,
+          4,
+          -5,
+          6,
+      },
+      pros::MotorGearset::blue);
+  while (true) {
+    for (int i = 0; i < 6; i++) {
+      pros::lcd::print(i, "Motor %d: %.3f Nm", i + 1, dt.get_torque(i));
+      i++;
+    }
+  }
+}
 void intake_state_manager_fn(void *param) {
   while (true) {
     switch (intake_state) {
@@ -220,7 +240,7 @@ void initialize() {
 
 void disabled() {
   puncher.retract();
-  tongue.extend();
+  tongue.retract();
 }
 
 void competition_initialize() {}
@@ -242,7 +262,7 @@ void autonomous() {
 
   // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
-  left(chassis, intake_state, tongue, auton_wait);
+  right(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
