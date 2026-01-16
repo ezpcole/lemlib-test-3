@@ -3,6 +3,7 @@
 #include "gui.h"
 #include "lemlib/chassis/chassis.hpp"
 #include "liblvgl/llemu.hpp"
+#include "path.h"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
@@ -42,14 +43,11 @@ pros::Distance distance(13);
 pros::adi::Pneumatics tongue('A', false);
 pros::adi::Pneumatics puncher('B', false);
 double speed = 1.0;
-int direction = -1;
+int direction = 1;
 
 lemlib::Drivetrain old_drivetrain(&left_mg, &right_mg,
                                   12.5, // CHANGE THIS
                                   lemlib::Omniwheel::NEW_325, 450, 6);
-
-lemlib::Drivetrain new_drivetrain(&left_mg, &right_mg, 12.194,
-                                  lemlib::Omniwheel::NEW_325, 360, 2);
 lemlib::OdomSensors sensors(
     nullptr, // vertical tracking wheel 1, set to null
     nullptr, // vertical tracking wheel 2, set to nullptr as we are using IMEs
@@ -75,7 +73,7 @@ lemlib::ControllerSettings
 lemlib::ControllerSettings
     angular_controller(2,   // proportional gain (kP)
                        0,   // integral gain (kI)
-                       10,  // derivative gain (kD)
+                       9,   // derivative gain (kD)
                        3,   // anti windup
                        1,   // small error range, in degrees
                        100, // small error range timeout, in milliseconds
@@ -87,14 +85,14 @@ lemlib::ControllerSettings
 // input curve for throttle input during driver control
 lemlib::ExpoDriveCurve
     throttle_curve(5,    // joystick deadband out of 127
-                   5,    // minimum output where drivetrain will move out of 127
+                   0,    // minimum output where drivetrain will move out of 127
                    1.019 // expo curve gain
     );
 
 // input curve for steer input during driver control
 lemlib::ExpoDriveCurve
     steer_curve(5,   // joystick deadband out of 127
-                5,   // minimum output where drivetrain will move out of 127
+                0,   // minimum output where drivetrain will move out of 127
                 1.01 // expo curve gain
     );
 
@@ -160,12 +158,10 @@ void intake_state_manager_fn(void *param) {
       flexy_boi.move(127 * speed);
       break;
     case SHORT_INTAKE:
-      intake.move(-127 * speed);
-      top_output.set_brake_mode(pros::motor_brake_mode_e::E_MOTOR_BRAKE_HOLD);
-      top_output.brake();
-      flexy_boi.brake();
+      intake.move(127 * speed);
       pros::delay(367);
-      intake_state = STOPPED;
+      intake.move(-127 * speed);
+      intake_state = HOARD;
       break;
     }
     pros::delay(20);
@@ -221,12 +217,8 @@ void dejam_fn(void *param) {
 
 void initialize() {
   imu.reset();
-  optical.set_led_pwm(100);
-  optical.set_integration_time(50);
   pros::lcd::initialize();
   chassis.calibrate(); // calibrate sensors
-  lemlib::Pose default_pose(0, 0, 0);
-  chassis.setPose(default_pose);
 
   // data_t gui_data = {&left_mg, &right_mg, &controller, &imu, nullptr,
   // &chassis}; gui gui(&gui_data);
@@ -248,7 +240,7 @@ void competition_initialize() {}
 void autonomous() {
   if (!threads_on) {
     pros::Task intake_state_manager(intake_state_manager_fn);
-    pros::Task color_sorting_manager(color_sorting_manager_fn);
+    // pros::Task color_sorting_manager(color_sorting_manager_fn);
     pros::Task dejam(dejam_fn);
     threads_on = true;
   }
@@ -262,7 +254,8 @@ void autonomous() {
 
   // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
-  right(chassis, intake_state, tongue, auton_wait);
+  skills_test(chassis, intake_state, tongue, auton_wait);
+  // right(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
@@ -270,7 +263,7 @@ void autonomous() {
 void opcontrol() {
   if (!threads_on) {
     pros::Task intake_state_manager(intake_state_manager_fn);
-    pros::Task color_sorting_manager(color_sorting_manager_fn);
+    // pros::Task color_sorting_manager(color_sorting_manager_fn);
     pros::Task dejam(dejam_fn);
     threads_on = true;
   }
@@ -280,18 +273,19 @@ void opcontrol() {
     // get left y and right x positions
     int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
     int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+    if (intake_state != SHORT_INTAKE) {
+      if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1))
+        intake_state = SHORT_INTAKE;
+      else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
+        intake_state = TOP_GOAL;
+      else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1))
+        intake_state = LOW_GOAL;
+      else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2))
+        intake_state = HOARD;
 
-    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1))
-      intake_state = SHORT_INTAKE;
-    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
-      intake_state = TOP_GOAL;
-    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1))
-      intake_state = LOW_GOAL;
-    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2))
-      intake_state = HOARD;
-
-    else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
-      intake_state = STOPPED;
+      else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
+        intake_state = STOPPED;
+    }
 
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
       tongue.toggle();
@@ -322,7 +316,7 @@ void opcontrol() {
     // }
 
     // move the robot
-    chassis.curvature(leftY * direction, rightX, false);
+    chassis.arcade(leftY * direction, rightX, false);
 
     // delay to save resources
     pros::delay(25);

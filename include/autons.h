@@ -11,12 +11,16 @@ struct auton_data {
 
 extern pros::adi::Pneumatics puncher;
 extern int side;
-
+void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
+                 pros::adi::Pneumatics &tongue, const int auton_wait);
 void old_long(lemlib::Chassis &chassis, intake_states &intake_state,
               pros::adi::Pneumatics &tongue, const int auton_wait);
 void new_center(lemlib::Chassis &chassis, intake_states &intake_state,
                 pros::adi::Pneumatics &tongue, const int auton_wait);
 void right(lemlib::Chassis &chassis, intake_states &intake_state,
            pros::adi::Pneumatics &tongue, const int auton_wait);
+void left(lemlib::Chassis &chassis, intake_states &intake_state,
+          pros::adi::Pneumatics &tongue, const int auton_wait);
+
 void nothing(lemlib::Chassis &chassis, intake_states &intake_state,
              pros::adi::Pneumatics &tongue, const int auton_wait);

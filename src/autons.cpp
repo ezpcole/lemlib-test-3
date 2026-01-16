@@ -69,34 +69,106 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
                  pros::adi::Pneumatics &tongue, const int auton_wait) {
   // Path
   intake_state = HOARD;
-  chassis.setPose({-61.148, -17.828, 0});
-  chassis.moveToPose(-33.798, -25.272, 225, 5000, {.forwards = true});
-  chassis.moveToPose(-55.807, -46.796, 270, 5000, {.forwards = true});
+  chassis.setPose({-61.148, -17.828, 90});
+  // chassis.setPose({-47.447, -14.514, 90}); // this is for the corner method
+  // on the top right corner
+  chassis.moveToPose(-25.798, -23.272, 225, 5000, {.forwards = true});
+  chassis.waitUntil(10);
+  puncher.extend();
+  chassis.waitUntilDone();
+
+  chassis.moveToPose(-59.807, -49.796, 270, 5000, {.forwards = true});
+  chassis.waitUntilDone();
   // match loader ^
-  chassis.moveToPose(-35.74, -42.103, 180, 5000, {.forwards = true});
-  chassis.moveToPose(-48.686, -60.066, 90, 5000, {.forwards = true});
-  chassis.moveToPose(29.642, -60.066, 90, 5000, {.forwards = true});
+  pros::delay(2000);
+  chassis.moveToPose(-46.74, -42.103, 180, 5000, {.forwards = false});
+  chassis.waitUntilDone();
+  puncher.retract();
+  intake_state = STOPPED;
+  chassis.moveToPose(
+      -23.686, -60.066, 90, 5000,
+      {.forwards = true,
+       .minSpeed =
+           27}); // start of rush to other side of field, remove if buggy
+  chassis.waitUntilDone();
+  chassis.moveToPose(29.642, -59.566, 90, 5000, {.forwards = true});
+  chassis.waitUntilDone();
   chassis.moveToPose(54.402, -57.963, 90, 5000, {.forwards = true});
-  chassis.moveToPose(31.907, -47.605, 90, 5000, {.forwards = false});
+  chassis.waitUntilDone();
+  chassis.moveToPose(28.907, -48.605, 90, 5000,
+                     {.forwards = false, .minSpeed = 15, .earlyExitRange = 1});
   // goal ^
-  chassis.moveToPose(57.639, -47.605, 90, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  intake_state = TOP_GOAL;
+  pros::delay(250);
+  intake_state = LOW_GOAL; // top goal
+  chassis.arcade(-30, 0);
+  pros::delay(4000);
+  puncher.extend();
+
+  chassis.moveToPose(58.639, -48.605, 90, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  chassis.waitUntil(5);
+  intake_state = HOARD;
   // match loader ^
-  chassis.moveToPose(32, -47.605, 90, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  pros::delay(2000);
+  chassis.moveToPose(32, -48.605, 90, 5000, {.forwards = false});
   // goal ^
-  chassis.moveToPose(39.352, 23.926, 0, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  intake_state = LOW_GOAL;
+  chassis.arcade(-30, 0);
+  pros::delay(4000);
+  puncher.retract();
+  chassis.moveToPose(45, -48.605, 90, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  chassis.turnToHeading(180, 5000, {.minSpeed = 30, .earlyExitRange = 20});
+  chassis.waitUntilDone();
+  chassis.moveToPose( // aurafarm position
+      62.352, -27.926, 180, 5000,
+      {.forwards = false, .maxSpeed = 50, .minSpeed = 15, .earlyExitRange = 2});
+  chassis.waitUntilDone();
+  chassis.moveToPose(62.352, 24.926, 180, 5000, // aurafarm boost
+                     {.forwards = false, .minSpeed = 30, .earlyExitRange = 4});
+  chassis.waitUntilDone();
+  chassis.moveToPose(39.352, 23.926, 180, 5000, {.forwards = false});
+  chassis.waitUntilDone();
+  puncher.extend();
   chassis.moveToPose(55.859, 46.582, 90, 5000, {.forwards = true});
   // match loader ^
+  chassis.waitUntilDone();
+  intake_state = HOARD;
+  pros::delay(2000);
   chassis.moveToPose(39.352, 40.433, 0, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  puncher.retract();
   chassis.moveToPose(32.393, 60.5, 270, 5000, {.forwards = true});
+  chassis.waitUntilDone();
   chassis.moveToPose(-35.416, 59.529, 270, 5000, {.forwards = true});
+  chassis.waitUntilDone();
   chassis.moveToPose(-53.218, 58.558, 270, 5000, {.forwards = true});
-  chassis.moveToPose(-33.798, 47.068, 270, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  chassis.moveToPose(-33.798, 47.068, 270, 5000, {.forwards = false});
   // goal ^
+  chassis.waitUntilDone();
+  intake_state = LOW_GOAL;
+  chassis.arcade(-30, 0);
+  puncher.extend();
+  pros::delay(4000);
   chassis.moveToPose(-55.322, 46.421, 270, 5000, {.forwards = true});
+  intake_state = HOARD;
   // match loader ^
-  chassis.moveToPose(-33.598, 47.068, 270, 5000, {.forwards = true});
+  chassis.waitUntilDone();
+  pros::delay(2000);
+  chassis.moveToPose(-33.598, 47.068, 270, 5000, {.forwards = false});
+  puncher.retract();
   // goal ^
+  chassis.waitUntilDone();
+  intake_state = LOW_GOAL;
+  chassis.arcade(-30, 0);
+  pros::delay(4000);
   chassis.moveToPose(-61.148, 28.942, 180, 5000, {.forwards = true});
+  chassis.waitUntilDone();
   chassis.moveToPose(-62.28, 0, 180, 5000, {.forwards = true});
 }
 void nothing(lemlib::Chassis &chassis, intake_states &intake_state,
@@ -111,12 +183,12 @@ void right(lemlib::Chassis &chassis, intake_states &intake_state,
            pros::adi::Pneumatics &tongue, const int auton_wait) {
   // Path
   intake_state = HOARD;
-  chassis.moveToPose(7.988 * side, 41.7, 30, 5000, {});
+  chassis.moveToPose(7.988, 41.7, 30, 5000, {});
   chassis.waitUntil(27);
   puncher.extend();
   chassis.waitUntilDone();
   puncher.retract();
-  chassis.moveToPose(33 * side, 5.218, 180, 5000, {});
+  chassis.moveToPose(33, 5.218, 180, 5000, {});
   // x is 33 for right side
   chassis.waitUntil(30);
   puncher.extend();
@@ -127,7 +199,36 @@ void right(lemlib::Chassis &chassis, intake_states &intake_state,
     chassis.arcade(-50, 0);
     pros::delay(300);
   }
-  chassis.moveToPose(33 * side, 31.778, 180, 5000, {.forwards = false});
+  chassis.moveToPose(33, 31.778, 180, 5000, {.forwards = false});
+  chassis.waitUntil(15);
+  puncher.retract();
+  chassis.waitUntilDone();
+  pros::delay(auton_wait);
+  chassis.arcade(-30, 0);
+  intake_state = LOW_GOAL; // this is actually top
+                           // goal
+}
+void left(lemlib::Chassis &chassis, intake_states &intake_state,
+          pros::adi::Pneumatics &tongue, const int auton_wait) {
+  // Path
+  intake_state = HOARD;
+  chassis.moveToPose(-3, 39.5, 330, 6000, {.lead = 0.6, .maxSpeed = 50});
+  chassis.waitUntil(29);
+  puncher.extend();
+  chassis.waitUntilDone();
+  puncher.retract();
+  chassis.moveToPose(-28.5, 3, 180, 5000, {.lead = 0.3});
+  // x is 33 for right side
+  chassis.waitUntil(30);
+  puncher.extend();
+  chassis.waitUntilDone();
+  for (int i = 0; i < 3; i++) {
+    chassis.arcade(86, 0);
+    pros::delay(300);
+    chassis.arcade(-50, 0);
+    pros::delay(300);
+  }
+  chassis.moveToPose(-28.5, 28, 180, 5000, {.forwards = false});
   chassis.waitUntil(15);
   puncher.retract();
   chassis.waitUntilDone();
