@@ -79,8 +79,8 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
                  pros::adi::Pneumatics &tongue, const int auton_wait) {
   // Path
 
-  const int load_time = 4000;
-  const int unload_time = 8000;
+  const int load_time = 6000;
+  const int unload_time = 6000;
   chassis.setPose({-61.148, -17.828, 90});
   // chassis.setPose({-47.447, -14.514, 90}); // this is for the corner method
   // on the top right corner
@@ -90,11 +90,11 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   puncher.extend();
   chassis.waitUntilDone();
   intake_state = HOARD;
-  chassis.moveToPose(-61.650, -50, 270, 4000, {.forwards = true});
+  chassis.moveToPose(-61.150, -50, 270, 4000, {.forwards = true});
   chassis.waitUntilDone();
   // match loader ^
   // jiggle(1, 150, 30);
-  pros::delay(load_time - 350 * 2);
+  pros::delay(load_time);
   chassis.moveToPose(-46.74, -42.103, 180, 5000, {.forwards = false});
   chassis.waitUntilDone();
   puncher.retract();
@@ -112,11 +112,11 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   chassis.moveToPose(54.402, -57.963, 90, 5000,
                      {.forwards = true, .minSpeed = 40});
   chassis.waitUntilDone();
-  chassis.moveToPose(25.907, -47.605, 90, 5000,
+  chassis.moveToPose(26.207, -48.605, 90, 2000,
                      {.forwards = false, .minSpeed = 15, .earlyExitRange = 0});
-  jiggle(1, 150, 200, 30);
+  jiggle(1, 200, 400, 50);
   // goal ^
-  chassis.arcade(-50, 0);
+  // chassis.arcade(-50, 0);
   chassis.waitUntilDone();
   intake_state = TOP_GOAL;
   pros::delay(250);
@@ -124,7 +124,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   puncher.extend();
   pros::delay(unload_time);
   // intake_state = LOW_GOAL;
-  chassis.moveToPose(64, -47.505, 90, 5000, {.forwards = true});
+  chassis.moveToPose(65, -47.805, 90, 3000, {.forwards = true});
   chassis.waitUntil(2.5);
   intake_state = HOARD;
   chassis.waitUntilDone();
@@ -132,8 +132,8 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   chassis.waitUntilDone();
   chassis.arcade(0, 0);
   // jiggle(1, 150, 30);
-  pros::delay(load_time - 150);
-  chassis.moveToPose(25.907, -47.505, 90, 2000,
+  pros::delay(load_time);
+  chassis.moveToPose(25.907, -48.505, 90, 2000,
                      {.forwards = false, .minSpeed = 15, .earlyExitRange = 0});
   // goal ^
   chassis.waitUntilDone();
