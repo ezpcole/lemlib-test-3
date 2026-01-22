@@ -137,8 +137,9 @@ void intake_state_manager_fn(void *param) {
       break;
     case HOARD:
       intake.move(-127 * speed);
-      top_output.set_brake_mode(pros::motor_brake_mode_e::E_MOTOR_BRAKE_HOLD);
+      top_output.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
       top_output.brake();
+      flexy_boi.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
       flexy_boi.brake();
       break;
     case LOW_GOAL:
@@ -255,7 +256,7 @@ void autonomous() {
   // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
   skills_test(chassis, intake_state, tongue, auton_wait);
-  // right(chassis, intake_state, tongue, auton_wait);
+  // left(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
@@ -268,6 +269,8 @@ void opcontrol() {
     threads_on = true;
   }
   // puncher.extend();
+
+  pros::Task auton(autonomous);
 
   while (true) {
     // get left y and right x positions
@@ -291,7 +294,8 @@ void opcontrol() {
       tongue.toggle();
 
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
-      color_sorting = !color_sorting;
+      auton.suspend();
+      chassis.cancelAllMotions();
       pros::lcd::print(2, "color sorting: %s", color_sorting ? "on" : "off");
       if (color_sorting) {
         // color_sorting_manager.resume();
