@@ -2,6 +2,7 @@
 #include "autons.h"
 #include "gui.h"
 #include "lemlib/chassis/chassis.hpp"
+#include "lemlib/pose.hpp"
 #include "liblvgl/llemu.hpp"
 #include "path.h"
 #include "pros/adi.hpp"
@@ -91,9 +92,9 @@ lemlib::ExpoDriveCurve
 
 // input curve for steer input during driver control
 lemlib::ExpoDriveCurve
-    steer_curve(5,   // joystick deadband out of 127
-                0,   // minimum output where drivetrain will move out of 127
-                1.03 // expo curve gain
+    steer_curve(5,    // joystick deadband out of 127
+                0,    // minimum output where drivetrain will move out of 127
+                1.025 // expo curve gain
     );
 
 lemlib::Chassis chassis(old_drivetrain,     // drivetrain settings
@@ -109,21 +110,11 @@ bool threads_on = false;
 int side = -1;
 
 void drivetrain_telemetry_fn(void *param) {
-  pros::MotorGroup dt(
-      {
-          -1,
-          2,
-          -3,
-          4,
-          -5,
-          6,
-      },
-      pros::MotorGearset::blue);
   while (true) {
-    for (int i = 0; i < 6; i++) {
-      pros::lcd::print(i, "Motor %d: %.3f Nm", i + 1, dt.get_torque(i));
-      i++;
-    }
+    lemlib::Pose pose = chassis.getPose();
+    pros::lcd::print(4, "X: %.2f, Y: %.2f, Theta: %.2f", pose.x, pose.y,
+                     pose.theta);
+    pros::delay(20);
   }
 }
 void intake_state_manager_fn(void *param) {
@@ -154,7 +145,7 @@ void intake_state_manager_fn(void *param) {
       // top_output.move(127 * speed);
       break;
     case TOP_GOAL:
-      intake.move(127 * speed);
+      intake.move(127 * 0.33 * speed);
       top_output.move(127 * speed);
       flexy_boi.move(127 * speed);
       break;
@@ -243,6 +234,7 @@ void autonomous() {
     pros::Task intake_state_manager(intake_state_manager_fn);
     // pros::Task color_sorting_manager(color_sorting_manager_fn);
     pros::Task dejam(dejam_fn);
+    pros::Task drivetrain_telemetry(drivetrain_telemetry_fn);
     threads_on = true;
   }
 
@@ -255,8 +247,8 @@ void autonomous() {
 
   // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
-  skills_test(chassis, intake_state, tongue, auton_wait);
-  // left(chassis, intake_state, tongue, auton_wait);
+  // skills_test(chassis, intake_state, tongue, auton_wait);
+  right(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
@@ -266,11 +258,12 @@ void opcontrol() {
     pros::Task intake_state_manager(intake_state_manager_fn);
     // pros::Task color_sorting_manager(color_sorting_manager_fn);
     pros::Task dejam(dejam_fn);
+
     threads_on = true;
   }
   // puncher.extend();
 
-  pros::Task auton(autonomous);
+  // pros::Task auton(autonomous);
 
   while (true) {
     // get left y and right x positions
@@ -294,7 +287,7 @@ void opcontrol() {
       tongue.toggle();
 
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
-      auton.suspend();
+      // auton.suspend();
       chassis.cancelAllMotions();
       pros::lcd::print(2, "color sorting: %s", color_sorting ? "on" : "off");
       if (color_sorting) {

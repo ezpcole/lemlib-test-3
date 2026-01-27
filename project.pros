@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "skills",
+    "project_name": "match",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -636,7 +636,7 @@
     },
     "upload_options": {
       "description": "Version 0.5",
-      "slot": 3,
+      "slot": 1,
       "icon": "clawbot"
     },
     "use_early_access": false

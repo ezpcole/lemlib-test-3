@@ -4,12 +4,13 @@
 #include "skills.h"
 ASSET(example_txt)
 
-void jiggle(int iter, int len1, int len2, int power) {
+void jiggle(int iter, int len1, int len2, int power, int delay) {
   for (int i = 0; i < iter; i++) {
     chassis.arcade(power, 0);
     pros::delay(len1);
     chassis.arcade(-power, 0);
     pros::delay(len2);
+    pros::delay(delay);
   }
   chassis.arcade(0, 0);
 }
@@ -79,21 +80,21 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
                  pros::adi::Pneumatics &tongue, const int auton_wait) {
   // Path
 
-  const int load_time = 6000;
+  const int load_time = 5000;
   const int unload_time = 6000;
   chassis.setPose({-61.148, -17.828, 90});
   // chassis.setPose({-47.447, -14.514, 90}); // this is for the corner method
   // on the top right corner
-  chassis.moveToPose(-25.798, -24.772, 225, 5000,
+  chassis.moveToPose(-25.798, -24.772, 225, 1500,
                      {.forwards = true, .minSpeed = 60, .earlyExitRange = 10});
   chassis.waitUntil(5);
   puncher.extend();
   chassis.waitUntilDone();
   intake_state = HOARD;
-  chassis.moveToPose(-61.150, -50, 270, 4000, {.forwards = true});
+  chassis.moveToPose(-63.650, -51, 270, 3000, {.forwards = true});
   chassis.waitUntilDone();
   // match loader ^
-  // jiggle(1, 150, 30);
+  jiggle(3, 500, 50, 85, 0);
   pros::delay(load_time);
   chassis.moveToPose(-46.74, -42.103, 180, 5000, {.forwards = false});
   chassis.waitUntilDone();
@@ -112,9 +113,9 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   chassis.moveToPose(54.402, -57.963, 90, 5000,
                      {.forwards = true, .minSpeed = 40});
   chassis.waitUntilDone();
-  chassis.moveToPose(26.207, -48.605, 90, 2000,
+  chassis.moveToPose(25.6, -48.605, 90, 2000,
                      {.forwards = false, .minSpeed = 15, .earlyExitRange = 0});
-  jiggle(1, 200, 400, 50);
+  // jiggle(1, 200, 400, 50, 0);
   // goal ^
   // chassis.arcade(-50, 0);
   chassis.waitUntilDone();
@@ -124,14 +125,13 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   puncher.extend();
   pros::delay(unload_time);
   // intake_state = LOW_GOAL;
-  chassis.moveToPose(65, -47.805, 90, 3000, {.forwards = true});
+  chassis.moveToPose(66, -47, 90, 3000, {.forwards = true});
   chassis.waitUntil(2.5);
   intake_state = HOARD;
   chassis.waitUntilDone();
   // match loader ^
   chassis.waitUntilDone();
-  chassis.arcade(0, 0);
-  // jiggle(1, 150, 30);
+  jiggle(3, 500, 50, 85, 0);
   pros::delay(load_time);
   chassis.moveToPose(25.907, -48.505, 90, 2000,
                      {.forwards = false, .minSpeed = 15, .earlyExitRange = 0});
@@ -155,8 +155,8 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   chassis.waitUntilDone();
   chassis.moveToPose(-46, 0, 270, 5000);
   chassis.waitUntilDone();
-  chassis.arcade(127 * 3 / 4, 0);
-  pros::delay(3500);
+  chassis.arcade(127 * 6.5 / 8.0, 0);
+  pros::delay(6000);
   chassis.cancelAllMotions();
   chassis.arcade(0, 0);
 
@@ -241,23 +241,24 @@ void right(lemlib::Chassis &chassis, intake_states &intake_state,
            pros::adi::Pneumatics &tongue, const int auton_wait) {
   // Path
   intake_state = HOARD;
-  chassis.moveToPose(7.988, 41.7, 30, 5000, {});
+  chassis.moveToPose(7.988, 42.7, 30, 5000, {});
   chassis.waitUntil(27);
   puncher.extend();
   chassis.waitUntilDone();
   puncher.retract();
-  chassis.moveToPose(33, 5.218, 180, 5000, {});
+  chassis.moveToPose(32.25, 4.218, 180, 3000, {});
   // x is 33 for right side
   chassis.waitUntil(30);
   puncher.extend();
   chassis.waitUntilDone();
   for (int i = 0; i < 3; i++) {
     chassis.arcade(86, 0);
-    pros::delay(300);
+    pros::delay(350);
     chassis.arcade(-50, 0);
-    pros::delay(300);
+    pros::delay(250);
   }
-  chassis.moveToPose(33, 32.378, 180, 5000, {.forwards = false});
+  pros::delay(500);
+  chassis.moveToPose(32, 32.378, 180, 5000, {.forwards = false});
   chassis.waitUntil(15);
   puncher.retract();
   chassis.waitUntilDone();
