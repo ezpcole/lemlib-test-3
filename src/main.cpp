@@ -2,6 +2,8 @@
 #include "autons.h"
 #include "gui.h"
 #include "lemlib/chassis/chassis.hpp"
+#include "lemlib/chassis/trackingWheel.hpp"
+#include "lemlib/pid.hpp"
 #include "lemlib/pose.hpp"
 #include "liblvgl/llemu.hpp"
 #include "path.h"
@@ -23,32 +25,34 @@
 ASSET(example1_txt)
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
-pros::MotorGroup left_mg({-1, 2, -3}, pros::MotorGearset::blue);
+pros::MotorGroup left_mg({-2, 3, -4}, pros::MotorGearset::blue);
 pros::MotorGroup right_mg(
     {
-        4,
-        -5,
-        6,
+        -12,
+        13,
+        14,
     },
     pros::MotorGearset::blue);
 
-pros::Motor flexy_boi(9, pros::MotorGearset::green);
-pros::Motor hood(-10, pros::MotorGearset::green);
-pros::Motor top_output(8, pros::MotorGearset::green);
-pros::Motor intake(-7, pros::MotorGearset::green);
-pros::MotorGroup all_motors({-7, -10, 8, 9}, pros::MotorGearset::blue);
+pros::Motor flexy_boi(1, pros::MotorGearset::green);
+pros::Motor hood(1, pros::MotorGearset::green);
+pros::Motor top_output(1, pros::MotorGearset::green);
+pros::Motor intake(11, pros::MotorGearset::green);
+// pros::MotorGroup all_motors({-7, -10, 8, 9}, pros::MotorGearset::blue);
 
-pros::Imu imu(11);
+pros::Imu imu(17);
 pros::Optical optical(12);
 pros::Distance distance(13);
-pros::adi::Pneumatics tongue('A', false);
-pros::adi::Pneumatics puncher('B', false);
+pros::adi::Pneumatics wing('A', false);
+pros::adi::Pneumatics middle_stage('C', false);
+pros::adi::Pneumatics tongue('B', false);
+
 double speed = 1.0;
 int direction = 1;
 
 lemlib::Drivetrain old_drivetrain(&left_mg, &right_mg,
-                                  12.5, // CHANGE THIS
-                                  lemlib::Omniwheel::NEW_325, 450, 6);
+                                  10.375, // CHANGE THIS
+                                  lemlib::Omniwheel::NEW_4, 300, 2);
 lemlib::OdomSensors sensors(
     nullptr, // vertical tracking wheel 1, set to null
     nullptr, // vertical tracking wheel 2, set to nullptr as we are using IMEs
@@ -59,42 +63,42 @@ lemlib::OdomSensors sensors(
 );
 // lateral PID controller
 lemlib::ControllerSettings
-    lateral_controller(8,   // proportional gain (kP)
-                       0,   // integral gain (kI)
-                       3,   // derivative gain (kD)
-                       3,   // anti windup
-                       1,   // small error range, in inches
-                       100, // small error range timeout, in milliseconds
-                       3,   // large error range, in inches
-                       500, // large error range timeout, in milliseconds
-                       40   // maximum acceleration (slew)
+    lateral_controller(8,    // proportional gain (kP) 8
+                       1,    // integral gain (kI) 0.5
+                       7,    // derivative gain (kD) 7
+                       2,    // anti windup 3
+                       1,    // small error range, in inches 1
+                       100,  // small error range timeout, in milliseconds 100
+                       3,    // large error range, in inches 3
+                       5000, // large error range timeout, in milliseconds 500
+                       0     // maximum acceleration (slew) 60
     );
 
 // angular PID controller
 lemlib::ControllerSettings
-    angular_controller(2,   // proportional gain (kP)
+    angular_controller(2.5, // proportional gain (kP)
                        0,   // integral gain (kI)
-                       9,   // derivative gain (kD)
+                       15,  // derivative gain (kD)
                        3,   // anti windup
-                       1,   // small error range, in degrees
+                       1,   // small error range, in inches
                        100, // small error range timeout, in milliseconds
-                       3,   // large error range, in degrees
+                       3,   // large error range, in inches TUNE ERROR RANGE
                        500, // large error range timeout, in milliseconds
-                       40   // maximum acceleration (slew)
+                       0    // maximum acceleration (slew)
     );
 
 // input curve for throttle input during driver control
 lemlib::ExpoDriveCurve
     throttle_curve(5,    // joystick deadband out of 127
                    0,    // minimum output where drivetrain will move out of 127
-                   1.025 // expo curve gain
+                   1.006 // expo curve gain
     );
 
 // input curve for steer input during driver control
 lemlib::ExpoDriveCurve
-    steer_curve(5,    // joystick deadband out of 127
-                0,    // minimum output where drivetrain will move out of 127
-                1.025 // expo curve gain
+    steer_curve(5,     // joystick deadband out of 127
+                0,     // minimum output where drivetrain will move out of 127
+                1.0075 // expo curve gain
     );
 
 lemlib::Chassis chassis(old_drivetrain,     // drivetrain settings
@@ -109,47 +113,45 @@ bool color_sorting = false;
 bool threads_on = false;
 int side = -1;
 
-void drivetrain_telemetry_fn(void *param) {
-  while (true) {
-    lemlib::Pose pose = chassis.getPose();
-    pros::lcd::print(4, "X: %.2f, Y: %.2f, Theta: %.2f", pose.x, pose.y,
-                     pose.theta);
-    pros::delay(20);
-  }
-}
+// void drivetrain_telemetry_fn(void *param) {
+//   while (true) {
+//     lemlib::Pose pose = chassis.getPose();
+//     pros::lcd::print(4, "X: %.2f, Y: %.2f, Theta: %.2f", pose.x, pose.y,
+//                      pose.theta);
+//     pros::delay(20);
+//   }
+// }
 void intake_state_manager_fn(void *param) {
   while (true) {
     switch (intake_state) {
     case STOPPED:
-      flexy_boi.brake();
-      hood.brake();
+      middle_stage.extend();
       intake.brake();
-      top_output.brake();
+      hood.brake();
       break;
     case HOARD:
+      middle_stage.extend();
       intake.move(-127 * speed);
-      top_output.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-      top_output.brake();
-      flexy_boi.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-      flexy_boi.brake();
+      hood.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+      hood.brake();
       break;
     case LOW_GOAL:
-      intake.move(-127 * speed);
-      top_output.move(-127 * speed);
-      flexy_boi.move(-127 * speed);
+      middle_stage.extend();
+      intake.move(127 * speed);
+      hood.move(-127 * speed);
       break;
     case MIDDLE_GOAL:
-      // intake.move(-127 * speed);
-      // low_hoard.move(-127 * speed);
-      // hood.brake();
-      // top_output.move(127 * speed);
+      middle_stage.retract();
+      intake.move(-127 * speed);
+      hood.move(127 * speed);
       break;
     case TOP_GOAL:
-      intake.move(127 * 0.33 * speed);
-      top_output.move(127 * speed);
-      flexy_boi.move(127 * speed);
+      middle_stage.extend();
+      intake.move(-127 * speed);
+      hood.move(127 * speed);
       break;
     case SHORT_INTAKE:
+      middle_stage.extend();
       intake.move(127 * speed);
       pros::delay(367);
       intake.move(-127 * speed);
@@ -223,8 +225,8 @@ void initialize() {
 }
 
 void disabled() {
-  puncher.retract();
   tongue.retract();
+  wing.extend();
 }
 
 void competition_initialize() {}
@@ -234,7 +236,7 @@ void autonomous() {
     pros::Task intake_state_manager(intake_state_manager_fn);
     // pros::Task color_sorting_manager(color_sorting_manager_fn);
     pros::Task dejam(dejam_fn);
-    pros::Task drivetrain_telemetry(drivetrain_telemetry_fn);
+    // pros::Task drivetrain_telemetry(drivetrain_telemetry_fn);
     threads_on = true;
   }
 
@@ -248,7 +250,8 @@ void autonomous() {
   // old_long(chassis, intake_state, tongue, auton_wait);
   // nothing(chassis, intake_state, tongue, auton_wait);
   // skills_test(chassis, intake_state, tongue, auton_wait);
-  right(chassis, intake_state, tongue, auton_wait);
+  // right(chassis, intake_state, wing, auton_wait);
+  new_center(chassis, intake_state, tongue, auton_wait);
 
   lemlib::Pose default_pose(0, 0, 0);
 }
@@ -264,18 +267,21 @@ void opcontrol() {
   // puncher.extend();
 
   // pros::Task auton(autonomous);
+  int ts_num = 0;
 
   while (true) {
     // get left y and right x positions
     int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
     int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
     if (intake_state != SHORT_INTAKE) {
-      if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1))
-        intake_state = SHORT_INTAKE;
-      else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
+      if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1))
+        wing.retract();
+      else
+        wing.extend();
+      if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2))
         intake_state = TOP_GOAL;
       else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R1))
-        intake_state = LOW_GOAL;
+        intake_state = MIDDLE_GOAL;
       else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_R2))
         intake_state = HOARD;
 
@@ -283,8 +289,9 @@ void opcontrol() {
         intake_state = STOPPED;
     }
 
-    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
+    if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
       tongue.toggle();
+    }
 
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
       // auton.suspend();
@@ -297,14 +304,14 @@ void opcontrol() {
       }
     }
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
-      direction *= -1;
+      intake_state = LOW_GOAL;
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN))
-      puncher.toggle();
+      intake_state = SHORT_INTAKE;
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT))
-      chassis.turnToHeading(chassis.getPose().theta + 180, 100);
+      chassis.turnToHeading(chassis.getPose().theta + 90, 10000);
     if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-      chassis.moveToPose(chassis.getPose().x - 18, chassis.getPose().y - 18,
-                         chassis.getPose().theta, 100);
+      chassis.moveToPoint(chassis.getPose().x, chassis.getPose().y + 12.5,
+                          10000);
     }
 
     // for (int i = 0; i < all_motors.size(); i++) {
@@ -313,8 +320,7 @@ void opcontrol() {
     // }
 
     // move the robot
-    chassis.arcade(leftY * direction, rightX, false);
-
+    chassis.arcade(leftY * direction, rightX, false, 0.55);
     // delay to save resources
     pros::delay(25);
   }

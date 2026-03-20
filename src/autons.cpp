@@ -88,7 +88,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   chassis.moveToPose(-25.798, -24.772, 225, 1500,
                      {.forwards = true, .minSpeed = 60, .earlyExitRange = 10});
   chassis.waitUntil(5);
-  puncher.extend();
+  tongue.extend();
   chassis.waitUntilDone();
   intake_state = HOARD;
   chassis.moveToPose(-63.650, -51, 270, 3000, {.forwards = true});
@@ -98,7 +98,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   pros::delay(load_time);
   chassis.moveToPose(-46.74, -42.103, 180, 5000, {.forwards = false});
   chassis.waitUntilDone();
-  puncher.retract();
+  tongue.retract();
   intake_state = STOPPED;
   chassis.moveToPose(
       -23.686, -59.25, 90, 5000,
@@ -122,7 +122,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   intake_state = TOP_GOAL;
   pros::delay(250);
   intake_state = LOW_GOAL; // top goal
-  puncher.extend();
+  tongue.extend();
   pros::delay(unload_time);
   // intake_state = LOW_GOAL;
   chassis.moveToPose(66, -47, 90, 3000, {.forwards = true});
@@ -141,7 +141,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   pros::delay(250);
   intake_state = LOW_GOAL;
   // chassis.arcade(-30, 0);
-  puncher.retract();
+  tongue.retract();
   pros::delay(unload_time);
   // intake_state = TOP_GOAL;
   chassis.moveToPose(45, -48.605, 90, 5000,
@@ -171,7 +171,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   // chassis.waitUntilDone();
   // chassis.moveToPose(39.352, 23.926, 0, 5000, {.forwards = false});
   // chassis.waitUntilDone();
-  // puncher.extend();
+  // ts.extend();
   // chassis.moveToPose(59.659, 46.405, 90, 5000, {.forwards = true});
   // // match loader ^
   // chassis.waitUntilDone();
@@ -180,7 +180,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   // intake_state = STOPPED;
   // chassis.moveToPose(46.74, 42.103, 0, 5000, {.forwards = false});
   // chassis.waitUntilDone();
-  // puncher.retract();
+  // ts.retract();
 
   // chassis.moveToPose(
   //     23.686, 59.7, 270, 5000,
@@ -204,7 +204,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   // pros::delay(250);
   // intake_state = LOW_GOAL; // top goal
   // chassis.arcade(-30, 0);
-  // puncher.extend();
+  // ts.extend();
   // pros::delay(4000);
   // intake_state = TOP_GOAL;
   // chassis.moveToPose(-60.9, 50, 90, 5000, {.forwards = true});
@@ -223,7 +223,7 @@ void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
   // pros::delay(250);
   // intake_state = LOW_GOAL;
   // chassis.arcade(-30, 0);
-  // puncher.retract();
+  // ts.retract();
   // pros::delay(4000);
   // intake_state = TOP_GOAL;
   // chassis.moveToPose(-75, 0, 270, 5000);
@@ -243,13 +243,13 @@ void right(lemlib::Chassis &chassis, intake_states &intake_state,
   intake_state = HOARD;
   chassis.moveToPose(7.988, 42.7, 30, 5000, {});
   chassis.waitUntil(27);
-  puncher.extend();
+  tongue.extend();
   chassis.waitUntilDone();
-  puncher.retract();
+  tongue.retract();
   chassis.moveToPose(32.25, 4.218, 180, 3000, {});
   // x is 33 for right side
   chassis.waitUntil(30);
-  puncher.extend();
+  tongue.extend();
   chassis.waitUntilDone();
   for (int i = 0; i < 3; i++) {
     chassis.arcade(86, 0);
@@ -260,7 +260,7 @@ void right(lemlib::Chassis &chassis, intake_states &intake_state,
   pros::delay(500);
   chassis.moveToPose(32, 32.378, 180, 5000, {.forwards = false});
   chassis.waitUntil(15);
-  puncher.retract();
+  tongue.retract();
   chassis.waitUntilDone();
   pros::delay(auton_wait);
   chassis.arcade(-30, 0);
@@ -273,13 +273,13 @@ void left(lemlib::Chassis &chassis, intake_states &intake_state,
   intake_state = HOARD;
   chassis.moveToPose(-3, 39.5, 330, 6000, {});
   chassis.waitUntil(29);
-  puncher.extend();
+  tongue.extend();
   chassis.waitUntilDone();
-  puncher.retract();
+  tongue.retract();
   chassis.moveToPose(-29, 3, 180, 5000, {.lead = 0.3});
   // x is 33 for right side
   chassis.waitUntil(30);
-  puncher.extend();
+  tongue.extend();
   chassis.waitUntilDone();
   for (int i = 0; i < 3; i++) {
     chassis.arcade(86, 0);
@@ -289,7 +289,7 @@ void left(lemlib::Chassis &chassis, intake_states &intake_state,
   }
   chassis.moveToPose(-31.5, 32, 180, 5000, {.forwards = false});
   chassis.waitUntil(15);
-  puncher.retract();
+  tongue.retract();
   chassis.waitUntilDone();
   pros::delay(auton_wait);
   chassis.arcade(-30, 0);
@@ -298,4 +298,44 @@ void left(lemlib::Chassis &chassis, intake_states &intake_state,
 }
 
 void new_center(lemlib::Chassis &chassis, intake_states &intake_state,
-                pros::adi::Pneumatics &tongue, const int auton_wait) {}
+                pros::adi::Pneumatics &tongue, const int auton_wait) {
+  // chassis.calibrate(true);
+  lemlib::Pose startingPose(-45.8, 6.421, 90);
+  chassis.setPose(startingPose);
+  chassis.moveToPoint(-23.8, 6.421, 1000, {.earlyExitRange = 0});
+  chassis.waitUntilDone();
+  chassis.turnToHeading(0, 750,
+                        {.direction = AngularDirection::CCW_COUNTERCLOCKWISE,
+                         .minSpeed = 20,
+                         .earlyExitRange = 0});
+  chassis.waitUntilDone();
+  chassis.moveToPoint(-21, 26.636, 1000, {.maxSpeed = 50});
+  intake_state = HOARD;
+  chassis.waitUntil(8);
+  tongue.extend(); // should grab the blocks by now
+  chassis.waitUntilDone();
+  pros::delay(500);
+  chassis.moveToPoint(-23.4, 23.436, 1000, {.forwards = false});
+  // tongue.retract(); commented out in hopes that match load work
+  chassis.turnToHeading(-45, 1000,
+                        {.direction = AngularDirection::CCW_COUNTERCLOCKWISE});
+  chassis.waitUntilDone();
+  chassis.moveToPoint(-10.5, 10.5, 1000, {.forwards = false});
+  chassis.waitUntilDone();
+  intake_state = MIDDLE_GOAL;
+  pros::delay(1500);
+  intake_state = STOPPED;
+  chassis.moveToPoint(-47, 47, 3000, {});
+  chassis.waitUntilDone();
+  chassis.turnToHeading(270, 750,
+                        {.direction = AngularDirection::CCW_COUNTERCLOCKWISE});
+  chassis.waitUntilDone();
+  tongue.extend();
+  intake_state = HOARD;
+  chassis.moveToPoint(-55.989, 47, 1500, {});
+  chassis.waitUntilDone();
+  pros::delay(2000);
+  chassis.moveToPoint(-28.245, 47, 1500, {.forwards = false});
+  chassis.waitUntilDone();
+  intake_state = TOP_GOAL;
+}
