@@ -9,7 +9,7 @@ struct auton_data {
   starting_side side;
 };
 
-extern pros::adi::Pneumatics puncher;
+extern pros::adi::Pneumatics tongue;
 extern int side;
 void skills_test(lemlib::Chassis &chassis, intake_states &intake_state,
                  pros::adi::Pneumatics &tongue, const int auton_wait);
